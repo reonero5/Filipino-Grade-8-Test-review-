@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="tl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grade 8 Filipino MATATAG - RealTime Test</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: #1a1a25;
+            --accent: #ffd700;
+            --accent-dark: #b8941f;
+            --text: #e0e0e0;
+            --text-muted: #888;
+            --success: #00d084;
+            --error: #ff4757;
+            --border: #2a2a3a;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container { max-width: 900px; margin: 0 auto; padding: 20px; }
+
+        header {
+            text-align: center;
+            padding: 30px 0;
+            border-bottom: 2px solid var(--accent);
+            margin-bottom: 20px;
+            background: linear-gradient(180deg, rgba(255,215,0,0.1) 0%, transparent 100%);
+        }
+
+        h1 { color: var(--accent); font-size: 2em; margin-bottom: 10px; }
+        .subtitle { color: var(--text-muted); font-size: 0.95em; }
+
+        .warning-box {
+            background: linear-gradient(135deg, rgba(255,71,87,0.2), rgba(255,71,87,0.05));
+            border: 2px solid var(--error);
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            text-align: center;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(255,71,87,0.4); }
+            50% { box-shadow: 0 0 20px rgba(255,71,87,0.2); }
+        }
+
+        .warning-box h3 { color: var(--error); margin-bottom: 10px; }
+
+        .btn {
+            background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+            color: #000;
+            border: none;
+            padding: 14px 28px;
+            font-size: 1em;
+            font-weight: bold;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 5px;
+        }
+
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(255,215,0,0.3); }
+        .btn-secondary { background: var(--bg-card); color: var(--text); border: 1px solid var(--border); }
+        .btn-danger { background: var(--error); color: white; }
+
+        .section {
+            background: var(--bg-secondary);
+            padding: 25px;
+            border-radius: 15px;
+            margin: 20px 0;
+            border: 1px solid var(--border);
+        }
+
+        .hidden { display: none !important; }
+
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            color: var(--text);
+            border-radius: 8px;
+            font-size: 1em;
+        }
+
+        input:focus { outline: none; border-color: var(--accent); }
+
+        .progress-bar {
+            height: 8px;
+            background: var(--bg-card);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), var(--accent-dark));
+            transition: width 0.3s;
+        }
+
+        .question-box {
+            background: var(--bg-card);
+            padding: 25px;
+            border-radius: 12px;
+            margin: 20px 0;
+            border-left: 4px solid var(--accent);
+        }
+
+        .question-type {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.75em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .type-enum { background: #4a90e2; color: white; }
+        .type-id { background: var(--error); color: white; }
+
+        .question-text {
+            font-size: 1.15em;
+            margin-bottom: 20px;
+            line-height: 1.8;
+            color: var(--text);
+        }
+
+        .choices { display: flex; flex-direction: column; gap: 10px; }
+
+        .choice {
+            background: var(--bg-secondary);
+            padding: 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            border: 2px solid var(--border);
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+        }
+
+        .choice:hover { border-color: var(--accent); background: rgba(255,215,0,0.05); }
+        .choice.selected { border-color: var(--accent); background: rgba(255,215,0,0.1); }
+        .choice input { margin-right: 12px; accent-color: var(--accent); }
+
+        .enum-input {
+            width: 100%;
+            padding: 15px;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border);
+            color: var(--text);
+            border-radius: 8px;
+            font-size: 1em;
+            margin-top: 10px;
+        }
+
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 25px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .jump-box { display: flex; gap: 8px; align-items: center; }
+        .jump-box input { width: 70px; text-align: center; }
+
+        .timer {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--bg-card);
+            padding: 12px 20px;
+            border-radius: 25px;
+            border: 2px solid var(--accent);
+            font-weight: bold;
+            z-index: 1000;
+        }
+
+        .leaderboard-live {
+            background: var(--bg-card);
+            border-radius: 12px;
+            overflow: hidden;
+            margin: 20px 0;
+            border: 1px solid var(--border);
+        }
+
+        .lb-header {
+            background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+            color: #000;
+            padding: 15px;
+            font-weight: bold;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .live-indicator {
+            width: 10px;
+            height: 10px;
+            background: #00d084;
+            border-radius: 50%;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+        .lb-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--border);
+            align-items: center;
+        }
+
+        .lb-item:hover { background: rgba(255,215,0,0.03); }
+
+        .lb-rank { font-weight: bold; width: 30px; }
+        .rank-1 { color: var(--accent); }
+        .rank-2 { color: #c0c0c0; }
+        .rank-3 { color: #cd7f32; }
+
+        .lb-info { flex: 1; margin-left: 10px; }
+        .lb-name { font-weight: 600; }
+        .lb-meta { font-size: 0.85em; color: var(--text-muted); }
+
+        .lb-score {
+            text-align: right;
+            font-weight: bold;
+        }
+
+        .score-pass { color: var(--success); }
+        .score-fail { color: var(--error); }
+
+        .results-summary {
+            text-align: center;
+            padding: 30px;
+        }
+
+        .big-score {
+            font-size: 4em;
+            color: var(--accent);
+            font-weight: bold;
+            margin: 20px 0;
+        }
+
+        .pass-badge {
+            display: inline-block;
+            padding: 15px 30px;
+            border-radius: 30px;
+            font-size: 1.3em;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+
+        .badge-pass { background: rgba(0,208,132,0.2); color: var(--success); border: 2px solid var(--success); }
+        .badge-fail { background: rgba(255,71,87,0.2); color: var(--error); border: 2px solid var(--error); }
+
+        .review-item {
+            background: var(--bg-card);
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 10px;
+            border-left: 4px solid;
+        }
+
+        .review-correct { border-left-color: var(--success); }
+        .review-wrong { border-left-color: var(--error); }
+
+        .review-question { font-weight: 600; margin-bottom: 10px; color: var(--accent); }
+        .review-answer { margin: 8px 0; }
+        .review-wrong-ans { color: var(--error); text-decoration: line-through; }
+        .review-correct-ans { color: var(--success); font-weight: 600; }
+
+        .explanation {
+            background: rgba(255,255,255,0.03);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 0.95em;
+            border-left: 3px solid var(--accent);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .stat-box {
+            background: var(--bg-card);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-num { font-size: 2em; color: var(--accent); font-weight: bold; }
+        .stat-label { color: var(--text-muted); font-size: 0.9em; }
+
+        @media (max-width: 600px) {
+            .stats-grid { grid-template-columns: 1fr; }
+            .nav-buttons { flex-direction: column; }
+            .timer { position: relative; top: 0; right: 0; margin: 10px 0; text-align: center; }
+        }
+
+        .monitor-notice {
+            background: rgba(0,208,132,0.1);
+            border: 1px solid var(--success);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            text-align: center;
+            font-size: 0.9em;
+        }
+
+        .monitor-link {
+            color: var(--accent);
+            word-break: break-all;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="timer hidden" id="timer">00:00</div>
+
+<div class="container">
+    <header>
+        <h1>📚 Grade 8 Filipino</h1>
+        <div class="subtitle">MATATAG Curriculum | Quarters 1-4 | Comprehensive Assessment</div>
+        <div class="subtitle">Florante at Laura & Francisco Balagtas Baltazar</div>
+    </header>
+
+    <div class="warning-box">
+        <h3>⚠️ PAALALA SA MGA MAG-AARAL</h3>
+        <p><strong>"Iba-iba kayo ng pagsusulit para maiwasan ang cheating!"</strong></p>
+        <p>Ang bawat mag-aaral ay may unique na set ng tanong at pagkakasunod-sunod.</p>
+        <p>Passing Score: <strong>80%</strong> (80/100 items)</p>
+    </div>
+
+    <!-- LOGIN -->
+    <div class="section" id="loginSection">
+        <h2 style="text-align: center; margin-bottom: 20px; color: var(--accent);">Simulan ang Pagsusulit</h2>
+        
+        <input type="text" id="studentName" placeholder="Buong Pangalan (hal. Juan Dela Cruz)">
+        <input type="text" id="studentSection" placeholder="Seksiyon (hal. 8-A">
+        
+        <div style="text-align: center; margin-top: 20px;">
+            <button class="btn" onclick="startTest()">Magsimula Ngayon</button>
+        </div>
+
+        <div class="monitor-notice">
+            <p>👨‍🏫 <strong>PARA SA GURO/MONITOR:</strong></p>
+            <p>Upang makita ang real-time leaderboard ng lahat ng nagsusulit:</p>
+            <p class="monitor-link" id="monitorLink">Mag-login muna para makita ang monitoring link</p>
+            <p style="margin-top: 10px; font-size: 0.85em;">O buksan ang same link na ito sa ibang device/browser para makita ang live updates.</p>
+        </div>
+
+        <div class="leaderboard-live">
+            <div class="lb-header">
+                <span class="live-indicator"></span>
+                🏆 LIVE LEADERBOARD (Real-time)
+            </div>
+            <div id="leaderboardContent">
+                <div style="padding: 30px; text-align: center; color: var(--text-muted);">
+                    <p>Walang nagsusulit pa.</p>
+                    <p style="font-size: 0.9em; margin-top: 10px;">Ang leaderboard ay mag-a-update kapag may nagsimulang mag-test.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TEST -->
+    <div class="section hidden" id="testSection">
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressBar" style="width: 0%"></div>
+        </div>
+        <div style="text-align: center; margin-bottom: 15px; color: var(--text-muted);">
+            Tanong <span id="currentNum">1</span> sa 100
+        </div>
+
+        <div id="questionContainer"></div>
+
+        <div class="nav-buttons">
+            <button class="btn btn-secondary" onclick="prevQuestion()" id="prevBtn">← Nakaraan</button>
+            
+            <div class="jump-box">
+                <span>Jump:</span>
+                <input type="number" id="jumpInput" min="1" max="100" placeholder="#">
+                <button class="btn btn-secondary" onclick="jumpToQuestion()" style="padding: 10px 20px;">Go</button>
+            </div>
+
+            <button class="btn" onclick="nextQuestion()" id="nextBtn">Susunod →</button>
+        </div>
+
+        <div style="text-align: center; margin-top: 20px;">
+            <button class="btn btn-danger" onclick="submitTest()">I-submit ang Pagsusulit</button>
+        </div>
+    </div>
+
+    <!-- RESULTS -->
+    <div class="section hidden" id="resultsSection">
+        <div class="results-summary">
+            <h2 style="color: var(--accent); margin-bottom: 10px;">Resulta ng Pagsusulit</h2>
+            
+            <div class="big-score" id="scoreDisplay">0/100</div>
+            
+            <div id="passBadge" class="pass-badge"></div>
+
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-num" id="percentDisplay">0%</div>
+                    <div class="stat-label">Porsyento</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-num" id="timeDisplay">00:00</div>
+                    <div class="stat-label">Oras</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-num" id="rankDisplay">-</div>
+                    <div class="stat-label">Rank</div>
+                </div>
+            </div>
+
+            <div style="margin: 30px 0;">
+                <button class="btn" onclick="showReview()">📋 Rebyuhin ang mga Mali</button>
+                <button class="btn btn-secondary" onclick="retakeTest()">🔄 Ulitin</button>
+                <button class="btn btn-secondary" onclick="backToHome()">🏠 Home</button>
+            </div>
+        </div>
+
+        <div id="reviewContainer" class="hidden"></div>
+    </div>
+</div>
+
+<script>
+// ==================== FIREBASE CONFIG ====================
+const firebaseConfig = {
+    apiKey: "AIzaSyDummyKeyForDemo123456789",
+    authDomain: "filipino-grade8-test.firebaseapp.com",
+    databaseURL: "https://filipino-grade8-test-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "filipino-grade8-test",
+    storageBucket: "filipino-grade8-test.appspot.com",
+    messagingSenderId: "123456789",
+    appId: "1:123456789:web:abcdef123456"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+const resultsRef = database.ref('testResults');
+
+// ==================== QUESTION BANK (100 ITEMS) ====================
+const questionBank = [
+    // ENUMERATION (20 items - 20%)
+    { type: 'enumeration', question: "I-enumerate ang mga pangunahing tauhan sa Florante at Laura na nagpakita ng katapatan sa pag-ibig (4).", answer: ["florante", "laura", "aladin", "flerida"], acceptable: ["florante", "laura", "aladin", "flerida"], points: 4, explanation: "Ang apat na pangunahing tauhan ay nagpakita ng tapat na pag-ibig sa kabila ng mga pagsubok." },
+    { type: 'enumeration', question: "I-enumerate ang mga bansang may kaugnayan sa kwento ni Florante (3).", answer: ["albania", "persya", "krotona"], acceptable: ["albania", "persya", "persia", "krotona"], points: 3, explanation: "Ang Albania ay tahanan nina Florante, Persya kay Aladin, at Krotona ay isa sa mga lugar na binanggit." },
+    { type: 'enumeration', question: "I-enumerate ang mga yugto ng buhay ni Francisco Balagtas na nakaapekto sa kanyang pagsusulat (3).", answer: ["pag-ibig kay celia", "pagkakakulong", "kahirapan"], acceptable: ["pag-ibig kay celia", "pagkakakulong", "kahirapan", "kautangan"], points: 3, explanation: "Ang pag-ibig, pagkakakulong dahil sa utang, at kahirapan ang mga pangunahing karanasang humubog sa kanya." },
+    { type: 'enumeration', question: "I-enumerate ang mga aspeto ng kulturang Pilipino sa Florante at Laura (3).", answer: ["pagkamagalang", "pagtutulungan", "pananampalataya"], acceptable: ["pagkamagalang", "pagtutulungan", "pananampalataya", "pagmamahal sa pamilya"], points: 3, explanation: "Ipinakita sa akda ang pagmamahal sa pamilya, pagtutulungan, at malalim na pananampalataya." },
+    { type: 'enumeration', question: "I-enumerate ang mga sangkap ng maikling kwento (5).", answer: ["tauhan", "tagpuan", "banghay", "suliranin", "wakas"], acceptable: ["tauhan", "tagpuan", "banghay", "suliranin", "wakas", "tema", "kasawian", "kalutasan"], points: 5, explanation: "Ang limang sangkap ay nagbibigay-buhay sa kwento at nagdudulot ng interes sa mambabasa." },
+    { type: 'enumeration', question: "I-enumerate ang mga uri ng tayutay (5).", answer: ["pagtutulad", "pagwawangis", "personipikasyon", "pagmamalabis", "metonimiya"], acceptable: ["pagtutulad", "pagwawangis", "personipikasyon", "pagmamalabis", "metonimiya", "sinestesya", "awanggan"], points: 5, explanation: "Ang mga tayutay ay nagpapaganda ng pagpapahayag at nagdudulot ng malalim na kahulugan." },
+    { type: 'enumeration', question: "I-enumerate ang mga tema ng Florante at Laura (4).", answer: ["pag-ibig", "pagtataksil", "katapangan", "katarungan"], acceptable: ["pag-ibig", "pagtataksil", "katapangan", "katarungan", "kalayaan", "kabayanihan"], points: 4, explanation: "Ang mga temang ito ay nagpapakita ng mga isyung panlipunan at moral na hanggang ngayon ay may kaugnayan pa rin." },
+    { type: 'enumeration', question: "I-enumerate ang mga impluwensyang Kastila sa akda (3).", answer: ["relihiyon", "kastila", "pananampalataya"], acceptable: ["relihiyon", "kastila", "pananampalataya", "pagpapako", "kristiyanismo"], points: 3, explanation: "Nakita ang impluwensya sa paggamit ng mga simbolong Kristiyano at wikang Kastila." },
+    { type: 'enumeration', question: "I-enumerate ang mga katangian ni Florante bilang bayani (4).", answer: ["matapang", "matulungin", "matapat", "makatarungan"], acceptable: ["matapang", "matulungin", "matapat", "makatarungan", "maginoo", "marunong"], points: 4, explanation: "Si Florante ay huwaran ng kabayanihan dahil sa kanyang katapangan at pagmamahal sa bayan." },
+    { type: 'enumeration', question: "I-enumerate ang mga dahilan ng pagkakagapos ni Florante (3).", answer: ["pagtataksil ni adolfo", "paninira", "pagkakanulo"], acceptable: ["pagtataksil ni adolfo", "paninira", "pagkakanulo", "inggit", "poot"], points: 3, explanation: "Si Adolfo ay naging taksil dahil sa inggit at pagnanais na makuha si Laura." },
+    { type: 'enumeration', question: "I-enumerate ang mga anyo ng panitikan noong panahon ng Kastila (3).", answer: ["religious", "propaganda", "revolutionary"], acceptable: ["religious", "propaganda", "revolutionary", "relihiyon", "rebolusyonaryo"], points: 3, explanation: "Ang panitikan ay naging sandata laban sa pang-aapi at para sa pagpapaunlad ng kamalayan." },
+    { type: 'enumeration', question: "I-enumerate ang mga sangkap ng tula (4).", answer: ["sukat", "tugma", "taludtod", "talinghaga"], acceptable: ["sukat", "tugma", "taludtod", "talinghaga", "tema", "saknong"], points: 4, explanation: "Ang mga sangkap na ito ang bumubuo sa istruktura at ganda ng tula." },
+    { type: 'enumeration', question: "I-enumerate ang mga uri ng pagbabasa (3).", answer: ["literal", "pangkaisipan", "pangnilalaman"], acceptable: ["literal", "pangkaisipan", "pangnilalaman", "pangunahin", "pangalawa"], points: 3, explanation: "Ang bawat uri ay nagbibigay ng iba't ibang antas ng pag-unawa sa teksto." },
+    { type: 'enumeration', question: "I-enumerate ang mga katangian ng korido (3).", answer: ["awit", "pag-ibig", "pakikipagsapalaran"], acceptable: ["awit", "pag-ibig", "pakikipagsapalaran", "digmaan", "kabayanihan"], points: 3, explanation: "Ang korido ay isang anyo ng tula na nagkukuwento ng mga pakikipagsapalaran at pag-ibig." },
+    { type: 'enumeration', question: "I-enumerate ang mga simbolo sa Florante at Laura (3).", answer: ["gubat", "liwanag", "kadiliman"], acceptable: ["gubat", "liwanag", "kadiliman", "tanikala", "pag-asa"], points: 3, explanation: "Ang gubat ay simbolo ng pagsubok, liwanag ng pag-asa, at kadiliman ng kasamaan." },
+    { type: 'enumeration', question: "I-enumerate ang mga katangian ng epiko (4).", answer: ["bayani", "pakikipagsapalaran", "supernatural", "mahaba"], acceptable: ["bayani", "pakikipagsapalaran", "supernatural", "mahaba", "seremonya", "kasaysayan"], points: 4, explanation: "Ang epiko ay naglalarawan ng mga gawaing kabayanihan na may halong supernatural." },
+    { type: 'enumeration', question: "I-enumerate ang mga uri ng pagpapahayag (4).", answer: ["pagsasalaysay", "paglalarawan", "pangangatwiran", "paglalahad"], acceptable: ["pagsasalaysay", "paglalarawan", "pangangatwiran", "paglalahad", "pagpapaliwanag"], points: 4, explanation: "Ang bawat uri ay may tanging paraan ng paglalahad ng impormasyon at damdamin." },
+    { type: 'enumeration', question: "I-enumerate ang mga aral mula sa Florante at Laura (3).", answer: ["pagiging matapat", "pagtutulungan", "pagmamahal sa bayan"], acceptable: ["pagiging matapat", "pagtutulungan", "pagmamahal sa bayan", "katapangan", "katarungan"], points: 3, explanation: "Ang akda ay nagtuturo ng mga mabuting asal at pagpapahalaga sa kalayaan." },
+    { type: 'enumeration', question: "I-enumerate ang mga paraan ng pagtukoy sa paksa (3).", answer: ["pangungusap", "tanong", "sanggunian"], acceptable: ["pangungusap", "tanong", "sanggunian", "paglalarawan", "pagbabanggit"], points: 3, explanation: "Ang paksa ay maaaring tukuyin sa pamamagitan ng iba't ibang estratehiya." },
+    { type: 'enumeration', question: "I-enumerate ang mga bahagi ng liham (5).", answer: ["petsa", "pangalan ng tumatanggap", "bati", "laman", "lagda"], acceptable: ["petsa", "pangalan ng tumatanggap", "bati", "laman", "lagda", "pangalan ng nagpapadala", "pangalan"], points: 5, explanation: "Ang bawat bahagi ay mahalaga para sa kabuuang estruktura at pagiging pormal ng liham." },
+
+    // IDENTIFICATION (80 items - 80%)
+    { type: 'identification', question: "Sino ang kontrabida sa Florante at Laura na nagtaksil sa kanyang kaibigan dahil sa inggit at pagnanais na makuha ang trono at ang babaeng minamahal?", answer: "adolfo", acceptable: ["adolfo"], explanation: "Si Adolfo ay ang taksil na kaibigan ni Florante. Pinili niya ang kasamaan para sa kapangyarihan at pag-ibig." },
+    { type: 'identification', question: "Ano ang tawag sa anyo ng panitikan na ginamit sa Florante at Laura na may sukat na labindalawang pantig at karaniwang tumatalakay sa mga pakikipagsapalaran at romantikong pag-ibig?", answer: "awit", acceptable: ["awit"], explanation: "Ang awit ay isang anyo ng tula na may 12 pantig bawat taludtod at madalas na tumatalakay sa pag-ibig at pakikipagsapalaran." },
+    { type: 'identification', question: "Saan ikinulong si Francisco Balagtas nang mahigit na anim na na taon dahil sa utang na hindi niya nabayaran?", answer: "pandacan", acceptable: ["pandacan"], explanation: "Si Balagtas ay ikinulong sa Pandacan, Maynila dahil sa pagkakautang na nagdulot ng matinding paghihirap sa kanya." },
+    { type: 'identification', question: "Ano ang simbolo ng gubat sa Florante at Laura na kumakatawan sa mga pagsubok, kasawian, at kadiliman sa buhay ng tao?", answer: "pagsubok", acceptable: ["pagsubok", "kadiliman", "kahirapan"], explanation: "Ang gubat ay sumisimbolo sa mga pagsubok at kahirapang dinaranas ng tao bago makamit ang tagumpay." },
+    { type: 'identification', question: "Sino ang babaeng minamahal ni Aladin na naging dahilan ng pagkakagapos niya at pagkatapon sa ibang bansa?", answer: "flerida", acceptable: ["flerida"], explanation: "Si Flerida ang minamahal ni Aladin, ngunit si Sultan Ali-Adab ang nais magkaroon sa kanya kaya napilitan si Aladin na tumakas." },
+    { type: 'identification', question: "Ano ang tawag sa paghahambing na gumagamit ng mga salitang 'parang', 'tulad', 'gaya', o 'kamukha'?", answer: "pagtutulad", acceptable: ["pagtutulad"], explanation: "Ang pagtutulad o simile ay gumagamit ng mga salitang panghambing upang ikumpara ang dalawang bagay." },
+    { type: 'identification', question: "Sino ang hari ng Albania na ama ni Laura at naging biktima ng pagtataksil ni Adolfo?", answer: "linceo", acceptable: ["linceo", "king linceo"], explanation: "Si Haring Linceo ay ang mabuting hari ng Albania na pinatay ni Adolfo sa kanyang ambisyong mapasakamay ang trono." },
+    { type: 'identification', question: "Ano ang tawag sa bahagi ng liham na naglalaman ng pangunahing mensahe o impormasyon na nais iparating ng manunulat?", answer: "laman", acceptable: ["laman"], explanation: "Ang laman o body ang pinakaimportanteng bahagi ng liham kung saan nakasaad ang mensahe." },
+    { type: 'identification', question: "Sino ang matalik na kaibigan ni Florante sa Atenas na nagpakita ng tapat na pagkakaibigan sa kabila ng mga pagsubok?", answer: "menandro", acceptable: ["menandro"], explanation: "Si Menandro ay ang tapat na kaibigan ni Florante na nagsilbing katuwang sa mga laban at suliranin." },
+    { type: 'identification', question: "Ano ang tawag sa uri ng pagbabasa na tumutukoy sa pag-unawa sa literal na kahulugan ng mga salita sa teksto?", answer: "literal", acceptable: ["literal"], explanation: "Ang literal na pagbabasa ay tumutukoy sa pangunahing kahulugan ng mga salita nang hindi pa inaanalisa nang malalim." },
+    { type: 'identification', question: "Saan nag-aral sina Florante at Adolfo ng pitong taon upang mag-aral ng mga aral sa pamumuno at pakikidigma?", answer: "atenas", acceptable: ["atenas", "athens"], explanation: "Ang Atenas sa Gresya ay sentro ng karunungan kung saan nag-aral ang mga kabataan noon." },
+    { type: 'identification', question: "Ano ang tawag sa pagbibigay ng buhay sa mga bagay na walang buhay upang magkaroon ng emosyonal na epekto?", answer: "personipikasyon", acceptable: ["personipikasyon"], explanation: "Ang personipikasyon ay nagbibigay ng mga katangiang pantao sa mga bagay, hayop, o ideya." },
+    { type: 'identification', question: "Sino ang ama ni Florante na namatay sa kamay ng mga masasamang tao dahil sa paninirang ginawa ni Adolfo?", answer: "briseo", acceptable: ["briseo", "duke briseo"], explanation: "Si Duke Briseo ay ang mabuting ama ni Florante na pinatay sa pamamagitan ng paninirang ginawa ni Adolfo." },
+    { type: 'identification', question: "Ano ang tawag sa bahagi ng kwento kung saan ang mga tauhan ay nagkakaroon ng mga komplikasyon at suliranin?", answer: "kasukdulan", acceptable: ["kasukdulan", "gitna"], explanation: "Ang kasukdulan o climax ang pinakamataas na punto ng tensyon sa kwento kung saan nagkakaroon ng matinding laban." },
+    { type: 'identification', question: "Ano ang naging wakas ni Adolfo matapos niyang maghari ng ilang araw sa Albania?", answer: "namatay", acceptable: ["namatay", "pinatay"], explanation: "Si Adolfo ay namatay sa labanan nang bumalik si Florante at muling mabawi ang kaharian." },
+    { type: 'identification', question: "Ano ang tawag sa paghahambing na direkta at hindi gumagamit ng mga salitang panghambing?", answer: "metapora", acceptable: ["metapora"], explanation: "Ang metapora ay direktang paghahambing na nagsasabing ang isang bagay ay ang isa nang walang 'parang' o 'tulad'." },
+    { type: 'identification', question: "Sino ang naging hari ng Albania matapos mapatay si Adolfo at naibalik ang kapayapaan?", answer: "florante", acceptable: ["florante"], explanation: "Si Florante ang karapat-dapat na hari dahil sa kanyang kabutihan, katapangan, at pagmamahal sa bayan." },
+    { type: 'identification', question: "Ano ang tawag sa unang bahagi ng liham kung saan nakasaad ang araw, buwan, at taon ng pagsulat?", answer: "petsa", acceptable: ["petsa", "date"], explanation: "Ang petsa ay mahalaga upang malaman kung kailan isinulat ang liham at upang maging pormal ito." },
+    { type: 'identification', question: "Ano ang simbolo ng liwanag sa Florante at Laura na kumakatawan sa pag-asa, katotohanan, at kabutihan?", answer: "pagasa", acceptable: ["pagasa", "katotohanan", "kabutihan"], explanation: "Ang liwanag ay sumisimbolo sa pag-asa at katotohanan na nagtatapos sa kadiliman ng kasamaan." },
+    { type: 'identification', question: "Sino ang ina ni Florante na Prinsesa ng Krotona na nagpakita ng matinding pagmamahal sa kanyang anak?", answer: "floresca", acceptable: ["floresca", "princesa floresca"], explanation: "Si Princesa Floresca ay ang ina ni Florante na nagmula sa maharlikang pamilya ng Krotona." },
+    { type: 'identification', question: "Ano ang tawag sa pagpapahayag ng ideya sa pamamagitan ng paglalarawan ng mga katangian at detalye?", answer: "paglalarawan", acceptable: ["paglalarawan"], explanation: "Ang paglalarawan ay nagbibigay ng malinaw na larawan sa isipan ng mambabasa sa pamamagitan ng detalye." },
+    { type: 'identification', question: "Ano ang tawag sa huling bahagi ng kwento kung saan nalutas na ang mga suliranin at nagkaroon ng conclusion?", answer: "wakas", acceptable: ["wakas", "konklusyon"], explanation: "Ang wakas o resolution ang bahagi kung saan nagkaroon ng solusyon sa mga suliranin." },
+    { type: 'identification', question: "Sino ang Sultan ng Persya na ama ni Aladin at nagdulot ng pagkakatapon sa kanya?", answer: "ali-adab", acceptable: ["ali-adab", "sultan ali-adab"], explanation: "Si Sultan Ali-Adab ang ama ni Aladin na nagdulot ng pagkakatapon sa kanya dahil sa pag-ibig kay Flerida." },
+    { type: 'identification', question: "Ano ang tawag sa pagpapahayag ng damdamin o kaisipan sa paraang pampanitikan?", answer: "talinghaga", acceptable: ["talinghaga"], explanation: "Ang talinghaga ay ang paggamit ng mga salitang may malalim na kahulugan upang magbigay ng emosyonal na epekto." },
+    { type: 'identification', question: "Ano ang tawag sa paglalarawan ng isang bagay na labis-labis o sobra-sobra upang bigyang-diin?", answer: "pagmamalabis", acceptable: ["pagmamalabis", "hyperbole"], explanation: "Ang pagmamalabis o hyperbole ay nagpapahayag ng sobrang laki o dami upang bigyang-diin ang isang ideya." },
+    { type: 'identification', question: "Sino ang kaaway ng mga Turko na kinalaban ni Florante sa digmaan bago siya makauwi sa Albania?", answer: "persya", acceptable: ["persya", "persia"], explanation: "Ang Persya ay ang bansang kinalaban ni Florante bago siya bumalik sa Albania at matagpuan si Laura." },
+    { type: 'identification', question: "Ano ang tawag sa pagtukoy sa isang bagay sa pamamagitan ng bahagi nito o sa kaugnay na bagay?", answer: "metonimiya", acceptable: ["metonimiya"], explanation: "Ang metonimiya ay ang paggamit ng bahagi o kaugnay na bagay upang tukuyin ang kabuuan." },
+    { type: 'identification', question: "Ano ang tawag sa paglilipat ng pandama mula sa isang modality patungo sa isa pa?", answer: "sinestesya", acceptable: ["sinestesya"], explanation: "Ang sinestesya ay ang paggamit ng isang pandama upang ilarawan ang ibang pandama." },
+    { type: 'identification', question: "Sino ang babaeng nagligtas kay Laura mula sa masamang balak ni Adolfo?", answer: "flerida", acceptable: ["flerida"], explanation: "Si Flerida ang nagligtas kay Laura sa pamamagitan ng kanyang katapangan at mabilis na pag-iisip." },
+    { type: 'identification', question: "Ano ang tawag sa pagpapahayag ng ideya sa pamamagitan ng paglalahad ng mga datos at impormasyon?", answer: "paglalahad", acceptable: ["paglalahad"], explanation: "Ang paglalahad ay nagbibigay ng impormasyon at paliwanag nang diretso at malinaw." },
+    { type: 'identification', question: "Ano ang tawag sa pagpapaliwanag at pagbibigay-katwiran upang kumbinsihin ang mambabasa?", answer: "pangangatwiran", acceptable: ["pangangatwiran"], explanation: "Ang pangangatwiran ay naglalayong kumbinsihin ang mambabasa sa pamamagitan ng lohikal na paliwanag." },
+    { type: 'identification', question: "Saan unang nailathala ang Florante at Laura noong 1861?", answer: "mga piling tula", acceptable: ["mga piling tula"], explanation: "Ang Florante at Laura ay unang inilathala sa koleksyong 'Mga Piling Tula' noong 1861." },
+    { type: 'identification', question: "Ano ang tawag sa pagkakataon at lugar kung saan nangyayari ang mga pangyayari sa kwento?", answer: "tagpuan", acceptable: ["tagpuan", "setting"], explanation: "Ang tagpuan ay ang lugar at panahon kung saan umuusbong ang mga pangyayari sa kwento." },
+    { type: 'identification', question: "Ano ang tawag sa mga tauhan sa kwento na kumikilos at nagdadala ng aksyon?", answer: "tauhan", acceptable: ["tauhan", "character"], explanation: "Ang mga tauhan ang bumubuhay sa kwento at nagdadala ng mga aksyon at emosyon." },
+    { type: 'identification', question: "Sino ang may-akda ng 'Omar at Elvira' at 'Don Nuño'?", answer: "balagtas", acceptable: ["balagtas", "francisco balagtas"], explanation: "Si Francisco Balagtas ay may iba pang akda bukod sa Florante at Laura tulad ng Omar at Elvira." },
+    { type: 'identification', question: "Ano ang tawag sa pagkakasunud-sunod ng mga pangyayari sa kwento?", answer: "banghay", acceptable: ["banghay", "plot"], explanation: "Ang banghay o plot ay ang pagkakasunud-sunod ng mga pangyayari mula simula hanggang wakas." },
+    { type: 'identification', question: "Ano ang tawag sa sentral na ideya o mensahe ng isang akda?", answer: "tema", acceptable: ["tema", "theme"], explanation: "Ang tema ang pangunahing ideya o aral na nais iparating ng may-akda sa mambabasa." },
+    { type: 'identification', question: "Ano ang tawag sa suliranin o labanan ng mga tauhan sa kwento?", answer: "konflikto", acceptable: ["konflikto", "suliranin"], explanation: "Ang konflikto ang nagdudulot ng tensyon at interes sa kwento." },
+    { type: 'identification', question: "Sino ang kaaway ng mga Kristiyano na kinalaban ni Florante sa digmaan?", answer: "moro", acceptable: ["moro", "muslim"], explanation: "Ang mga Moro ay ang mga Muslim na kinalaban ng mga Kristiyano sa panahon ng Kastila." },
+    { type: 'identification', question: "Ano ang tawag sa pagpapahayag ng saloobin at damdamin sa tula?", answer: "saknong", acceptable: ["saknong"], explanation: "Ang saknong ay grupo ng mga taludtod na nagpapahayag ng isang ideya o damdamin." },
+    { type: 'identification', question: "Ano ang tawag sa regular na pag-ulit ng mga tunog sa huling bahagi ng mga salita?", answer: "tugma", acceptable: ["tugma", "rhyme"], explanation: "Ang tugma ay nagbibigay ng ritmo at musikalidad sa tula." },
+    { type: 'identification', question: "Ilan ang bilang ng pantig sa bawat taludtod ng Florante at Laura?", answer: "dose", acceptable: ["dose", "12", "labindalawa"], explanation: "Ang Florante at Laura ay sinusulat sa dodecasyllable o labindalawang pantig bawat taludtod." },
+    { type: 'identification', question: "Ano ang tawag sa pag-aaral ng mga simbolo at kahulugan sa panitikan?", answer: "pagsusuri", acceptable: ["pagsusuri"], explanation: "Ang pagsusuri ay ang malalim na pag-aaral ng mga elemento at kahulugan ng akda." },
+    { type: 'identification', question: "Sino ang babaeng minamahal ni Florante na naging inspirasyon niya sa pakikidigma?", answer: "laura", acceptable: ["laura"], explanation: "Si Laura ang inspirasyon ni Florante sa kanyang mga laban at paglilingkod sa bayan." },
+    { type: 'identification', question: "Ano ang tawag sa pagpapahalaga at pagpapakita ng magandang asal sa akda?", answer: "aral", acceptable: ["aral", "moral"], explanation: "Ang aral o moral lesson ang natututunan ng mambabasa mula sa kwento." },
+    { type: 'identification', question: "Ano ang tawag sa paglalarawan ng mga lugar, tao, at bagay sa tiyak na detalye?", answer: "deskripsyon", acceptable: ["deskripsyon", "paglalarawan"], explanation: "Ang deskripsyon ay nagbibigay ng malinaw at tiyak na larawan sa isipan." },
+    { type: 'identification', question: "Sino ang hari ng Persya na ama ni Flerida?", answer: "linceo", acceptable: ["linceo"], explanation: "Si Haring Linceo ng Persya ay ang ama ni Flerida, hindi ng Albania." },
+    { type: 'identification', question: "Ano ang tawag sa pagpapahayag ng ideya sa pamamagitan ng pagkukuwento?", answer: "pagsasalaysay", acceptable: ["pagsasalaysay", "narrative"], explanation: "Ang pagsasalaysay ay ang pagtatala ng mga pangyayari sa sunud-sunod na paraan." },
+    { type: 'identification', question: "Ano ang tawag sa pagpapahayag ng opinyon at paniniwala ng may-akda?", answer: "pananaw", acceptable: ["pananaw", "opinyon"], explanation: "Ang pananaw ay nagpapahayag ng personal na saloobin at paniniwala." },
+    { type: 'identification', question: "Sino ang kaibigan ni Florante na tumulong sa kanya nang siya ay nakagapos sa gubat?", answer: "aladin", acceptable: ["aladin"], explanation: "Si Aladin ang tumuklas kay Florante sa gubat at naging matalik na kaibigan." },
+    { type: 'identification', question: "Ano ang tawag sa paglilinaw ng mga salitang mahirap unawain sa teksto?", answer: "konteksto", acceptable: ["konteksto", "paliwanag"], explanation: "Ang konteksto ay tumutulong upang maunawaan ang kahulugan ng mga salita ayon sa paggamit." },
+    { type: 'identification', question: "Ano ang tawag sa paghahambing na direkta at walang 'parang' o 'tulad'?", answer: "pagwawangis", acceptable: ["pagwawangis", "metapora"], explanation: "Ang pagwawangis ay direktang paghahambing na nagsasabing ang isang bagay ay ang isa." },
+    { type: 'identification', question: "Sino ang nagligtas kay Florante mula sa kamatayan sa gubat?", answer: "aladin", acceptable: ["aladin"], explanation: "Si Aladin ang nagligtas kay Florante sa pamamagitan ng pagputol ng tali at pag-alaga sa kanya." },
+    { type: 'identification', question: "Ano ang tawag sa pagpapahayag ng emosyon at damdamin sa tula?", answer: "pagpapahayag", acceptable: ["pagpapahayag"], explanation: "Ang pagpapahayag ay ang malayang paglalabas ng mga damdamin at emosyon." },
+    { type: 'identification', question: "Ano ang tawag sa pag-aaral ng anyo at istruktura ng tula?", answer: "metriko", acceptable: ["metriko"], explanation: "Ang metriko ay ang pag-aaral ng sukat, tugma, at istruktura ng tula." },
+    { type: 'identification', question: "Sino ang naging asawa ni Florante sa huli ng kwento?", answer: "laura", acceptable: ["laura"], explanation: "Si Laura ang naging asawa ni Florante matapos malutas ang lahat ng suliranin." },
+    { type: 'identification', question: "Ano ang tawag sa pagpapakita ng mga katangian at kilos ng tauhan?", answer: "paglalarawan", acceptable: ["paglalarawan"], explanation: "Ang paglalarawan ng tauhan ay nagbibigay ng malinaw na larawan ng kanilang personalidad." },
+    { type: 'identification', question: "Ano ang tawag sa pagkakaiba-iba ng mga tauhan sa kwento?", answer: "pagkakaiba", acceptable: ["pagkakaiba", "diversity"], explanation: "Ang pagkakaiba ng mga tauhan ay nagdudulot ng interes at komplikasyon sa kwento." },
+    { type: 'identification', question: "Sino ang naging asawa ni Aladin sa huli ng kwento?", answer: "flerida", acceptable: ["flerida"], explanation: "Si Flerida ang naging asawa ni Aladin at sila ay namuhay nang masaya." },
+    { type: 'identification', question: "Ano ang tawag sa pagpapahayag ng ideya sa pamamagitan ng mga simbolo?", answer: "simbolismo", acceptable: ["simbolismo"], explanation: "Ang simbolismo ay ang paggamit ng mga bagay upang kumatawan sa mas malalim na kahulugan." },
+    { type: 'identification', question: "Ano ang tawag sa pag-aaral ng kasaysayan at konteksto ng akda?", answer: "kontekstwal", acceptable: ["kontekstwal"], explanation: "Ang kontekstwal na pag-aaral ay tumitingin sa panahon at kalagayan kung kailan isinulat ang akda." },
+    { type: 'identification', question: "Sino ang kaaway ng mga Hudyo na binanggit sa Florante at Laura?", answer: "herodes", acceptable: ["herodes", "haring herodes"], explanation: "Si Haring Herodes ay ang masamang hari na pumatay sa mga inosenteng sanggol." },
+    { type: 'identification', question: "Ano ang tawag sa pagpapahayag ng ideya sa pamamagitan ng mga imahe?", answer: "imahinarya", acceptable: ["imahinarya"], explanation: "Ang imahinarya ay ang paggamit ng mga malilikhaing larawan upang magbigay ng emosyon." },
+    { type: 'identification', question: "Ano ang tawag sa paglalarawan ng mga emosyon at damdamin ng tauhan?", answer: "emosyon", acceptable: ["emosyon"], explanation: "Ang paglalarawan ng emosyon ay nagpapadama sa mambabasa ng mga nararamdaman ng tauhan." },
+    { type: 'identification', question: "Sino ang nagturo kay Florante ng mga aral sa pakikidigma at pamumuno?", answer: "antemio", acceptable: ["antemio"], explanation: "Si Antemio ang guro nila Florante sa Atenas na nagturo ng mga mahahalagang aral." },
+    { type: 'identification', question: "Ano ang tawag sa pagpapahayag ng ideya sa pamamagitan ng mga aksyon?", answer: "aksyon", acceptable: ["aksyon", "kilos"], explanation: "Ang aksyon ay ang mga kilos at gawain ng mga tauhan sa kwento." },
+    { type: 'identification', question: "Ano ang tawag sa pag-aaral ng mga anyo at genre ng panitikan?", answer: "panteismo", acceptable: ["panteismo", "genre"], explanation: "Ang pag-aaral ng genre ay tumutukoy sa mga kategorya at anyo ng panitikan." },
+    { type: 'identification', question: "Sino ang kaaway ni Florante na nagngangalang 'General Osmalik'?", answer: "osmalik", acceptable: ["osmalik", "general osmalik"], explanation: "Si General Osmalik ay isa sa mga kalaban ni Florante sa digmaan." },
+    { type: 'identification', question: "Ano ang tawag sa pagpapahayag ng ideya sa pamamagitan ng mga diyalogo?", answer: "diyalogo", acceptable: ["diyalogo", "usapan"], explanation: "Ang diyalogo ay ang pag-uusap ng mga tauhan na nagpapahayag ng kanilang personalidad." },
+    { type: 'identification', question: "Ano ang tawag sa pag-aaral ng mga tema at mensahe ng akda?", answer: "tematiko", acceptable: ["tematiko"], explanation: "Ang tematikong pag-aaral ay tumutukoy sa mga pangunahing ideya at aral ng akda." },
+    { type: 'identification', question: "Sino ang kaaway ng mga Kristiyano na naging sanhi ng pagkakagapos ni Florante?", answer: "turko", acceptable: ["turko", "moro"], explanation: "Ang mga Turko ay ang mga Muslim na kalaban ng mga Kristiyano sa digmaan." },
+    { type: 'identification', question: "Ano ang tawag sa pagpapahayag ng ideya sa pamamagitan ng mga monologo?", answer: "monologo", acceptable: ["monologo"], explanation: "Ang monologo ay ang pagsasalita ng isang tauhan nang mag-isa upang ipahayag ang kanyang saloobin." },
+    { type: 'identification', question: "Ano ang tawag sa pag-aaral ng mga simbolo at sagisag sa akda?", answer: "simboliko", acceptable: ["simboliko"], explanation: "Ang simbolikong pag-aaral ay tumitingin sa mga bagay na may mas malalim na kahulugan." },
+    { type: 'identification', question: "Sino ang kaaway ni Florante na nagngangalang 'Miramolin'?", answer: "miramolin", acceptable: ["miramolin"], explanation: "Si Miramolin ay isa sa mga pinuno ng mga Moro na kinalaban ni Florante." },
+    { type: 'identification', question: "Ano ang tawag sa pagpapahayag ng ideya sa pamamagitan ng mga deskripsyon?", answer: "deskriptibo", acceptable: ["deskriptibo"], explanation: "Ang deskriptibong paraan ay naglalarawan ng mga detalye upang makabuo ng larawan." },
+    { type: 'identification', question: "Ano ang tawag sa pag-aaral ng mga estilo at teknik ng pagsulat?", answer: "estiliko", acceptable: ["estiliko", "estilo"], explanation: "Ang estiliko ay ang pag-aaral ng paraan at pamamaraan ng pagsulat ng may-akda." },
+    { type: 'identification', question: "Sino ang kaaway ng mga Kristiyano na naging sanhi ng pagkamatay ni Duke Briseo?", answer: "adolfo", acceptable: ["adolfo"], explanation: "Si Adolfo ang nagplano ng pagpatay kay Duke Briseo upang makuha ang kapangyarihan." },
+    { type: 'identification', question: "Ano ang tawag sa pagpapahayag ng ideya sa pamamagitan ng mga eksena?", answer: "eksenaryo", acceptable: ["eksenaryo", "tagpo"], explanation: "Ang eksenaryo ay ang paglalarawan ng mga pangyayari at tagpo sa kwento." },
+    { type: 'identification', question: "Ano ang tawag sa pag-aaral ng mga impluwensya sa pagsulat ng may-akda?", answer: "impluwensya", acceptable: ["impluwensya"], explanation: "Ang pag-aaral ng impluwensya ay tumitingin sa mga salik na nakaimpluwensya sa may-akda." },
+    { type: 'identification', question: "Sino ang kaaway ni Florante na nagngangalang 'General Zerran'?", answer: "zerran", acceptable: ["zerran", "general zerran"], explanation: "Si General Zerran ay isa sa mga pinuno ng hukbong kalaban ni Florante." },
+    { type: 'identification', question: "Ano ang tawag sa pagpapahayag ng ideya sa pamamagitan ng mga flashback?", answer: "flashback", acceptable: ["flashback", "pagbabaliktanaw"], explanation: "Ang flashback ay ang pagbabalik sa mga nakaraang pangyayari upang magbigay ng impormasyon." },
+    { type: 'identification', question: "Ano ang tawag sa pag-aaral ng mga repleksyon at koneksyon sa kasalukuyang panahon?", answer: "replektibo", acceptable: ["replektibo"], explanation: "Ang replektibong pag-aaral ay nag-uugnay ng akda sa kasalukuyang sitwasyon ng lipunan." }
+];
+
+// ==================== STATE ====================
+let currentQuestions = [];
+let currentIndex = 0;
+let answers = {};
+let student = {};
+let startTime = null;
+let timerInterval = null;
+
+// ==================== FIREBASE FUNCTIONS ====================
+function initFirebase() {
+    resultsRef.orderByChild('score').limitToLast(10).on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+            const sorted = Object.values(data).sort((a, b) => b.score - a.score || a.time.localeCompare(b.time));
+            updateLeaderboardUI(sorted);
+        }
+    });
+}
+
+function updateLeaderboardUI(data) {
+    const container = document.getElementById('leaderboardContent');
+    if (!data || data.length === 0) {
+        container.innerHTML = '<div style="padding: 30px; text-align: center; color: var(--text-muted);">Walang data pa...</div>';
+        return;
+    }
+
+    let html = '';
+    data.forEach((entry, idx) => {
+        const rankClass = idx === 0 ? 'rank-1' : idx === 1 ? 'rank-2' : idx === 2 ? 'rank-3' : '';
+        const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}.`;
+        const scoreClass = entry.passed ? 'score-pass' : 'score-fail';
+        
+        html += `
+            <div class="lb-item">
+                <div class="lb-rank ${rankClass}">${medal}</div>
+                <div class="lb-info">
+                    <div class="lb-name">${escapeHtml(entry.name)}</div>
+                    <div class="lb-meta">${escapeHtml(entry.section)} • ${entry.date}</div>
+                </div>
+                <div class="lb-score ${scoreClass}">
+                    ${entry.score}/100<br>
+                    <small>${entry.percentage}%</small>
+                </div>
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function saveResult(result) {
+    const newRef = resultsRef.push();
+    newRef.set(result);
+}
+
+// ==================== TEST FUNCTIONS ====================
+function shuffleArray(array) {
+    const newArray = [...array];
+    for (let i = newArray.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+    }
+    return newArray;
+}
+
+function generateTest() {
+    const enums = questionBank.filter(q => q.type === 'enumeration');
+    const ids = questionBank.filter(q => q.type === 'identification');
+    
+    const shuffledEnums = shuffleArray(enums).slice(0, 20);
+    const shuffledIds = shuffleArray(ids).slice(0, 80);
+    
+    const combined = [...shuffledEnums, ...shuffledIds];
+    return shuffleArray(combined).map((q, idx) => ({ ...q, num: idx + 1 }));
+}
+
+function startTest() {
+    const name = document.getElementById('studentName').value.trim();
+    const section = document.getElementById('studentSection').value.trim();
+    
+    if (!name || !section) {
+        alert('Paki-lagay ang pangalan at seksiyon!');
+        return;
+    }
+
+    student = { name, section, timestamp: new Date().toISOString() };
+    currentQuestions = generateTest();
+    currentIndex = 0;
+    answers = {};
+    
+    document.getElementById('loginSection').classList.add('hidden');
+    document.getElementById('testSection').classList.remove('hidden');
+    document.getElementById('timer').classList.remove('hidden');
+    
+    startTime = Date.now();
+    timerInterval = setInterval(updateTimer, 1000);
+    
+    renderQuestion();
+    updateProgress();
+}
+
+function updateTimer() {
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    const mins = Math.floor(elapsed / 60).toString().padStart(2, '0');
+    const secs = (elapsed % 60).toString().padStart(2, '0');
+    document.getElementById('timer').textContent = `${mins}:${secs}`;
+}
+
+function renderQuestion() {
+    const q = currentQuestions[currentIndex];
+    const container = document.getElementById('questionContainer');
+    
+    let html = `
+        <div class="question-box">
+            <span class="question-type ${q.type === 'enumeration' ? 'type-enum' : 'type-id'}">
+                ${q.type === 'enumeration' ? 'Enumeration' : 'Identification'}
+            </span>
+            <div class="question-text">${q.num}. ${q.question}</div>
+    `;
+
+    if (q.type === 'identification') {
+        const choices = generateTrickyChoices(q);
+        html += `<div class="choices">`;
+        choices.forEach(c => {
+            const selected = answers[q.num] === c.value ? 'selected' : '';
+            html += `
+                <label class="choice ${selected}">
+                    <input type="radio" name="q${q.num}" value="${c.value}" 
+                        ${selected ? 'checked' : ''}
+                        onchange="saveAnswer(${q.num}, '${c.value}')">
+                    <span>${c.label}</span>
+                </label>
+            `;
+        });
+        html += `</div>`;
+    } else {
+        const val = answers[q.num] || '';
+        html += `
+            <div style="margin-top: 15px;">
+                <p style="color: var(--text-muted); font-size: 0.9em; margin-bottom: 10px;">
+                    I-type ang mga sagot na pinaghihiwalay ng kuwit (,). Hal: sagot1, sagot2
+                </p>
+                <textarea class="enum-input" id="enum_${q.num}" rows="3" 
+                    onchange="saveEnumAnswer(${q.num})"
+                    placeholder="Ilagay ang sagot dito...">${val}</textarea>
+            </div>
+        `;
+    }
+
+    html += `</div>`;
+    container.innerHTML = html;
+    
+    document.getElementById('currentNum').textContent = currentIndex + 1;
+    document.getElementById('prevBtn').disabled = currentIndex === 0;
+    document.getElementById('nextBtn').textContent = 
+        currentIndex === 99 ? 'Tapos na' : 'Susunod →';
+}
+
+function generateTrickyChoices(q) {
+    const correct = q.answer;
+    const allAnswers = questionBank
+        .filter(x => x.type === 'identification' && x.answer !== correct)
+        .map(x => x.answer);
+    
+    const wrong = shuffleArray(allAnswers).slice(0, 3);
+    
+    const choices = [
+        { label: `A. ${capitalize(correct)}`, value: correct },
+        ...wrong.map((w, i) => ({ 
+            label: `${String.fromCharCode(66 + i)}. ${capitalize(w)}`, 
+            value: w 
+        }))
+    ];
+    
+    return shuffleArray(choices);
+}
+
+function capitalize(str) {
+    return str.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+
+function saveAnswer(num, val) {
+    answers[num] = val;
+    renderQuestion();
+}
+
+function saveEnumAnswer(num) {
+    answers[num] = document.getElementById(`enum_${num}`).value;
+}
+
+function nextQuestion() {
+    if (currentIndex < 99) {
+        currentIndex++;
+        renderQuestion();
+        updateProgress();
+    } else {
+        if (confirm('Nasa dulo ka na. I-submit na?')) submitTest();
+    }
+}
+
+function prevQuestion() {
+    if (currentIndex > 0) {
+        currentIndex--;
+        renderQuestion();
+        updateProgress();
+    }
+}
+
+function jumpToQuestion() {
+    const val = parseInt(document.getElementById('jumpInput').value);
+    if (val >= 1 && val <= 100) {
+        currentIndex = val - 1;
+        renderQuestion();
+        updateProgress();
+        document.getElementById('jumpInput').value = '';
+    }
+}
+
+function updateProgress() {
+    const pct = ((currentIndex + 1) / 100) * 100;
+    document.getElementById('progressBar').style.width = `${pct}%`;
+}
+
+// ==================== SUBMISSION ====================
+function submitTest() {
+    clearInterval(timerInterval);
+    const timeStr = document.getElementById('timer').textContent;
+    
+    let score = 0;
+    const results = [];
+    
+    currentQuestions.forEach(q => {
+        const userAns = answers[q.num] || '';
+        let isCorrect = false;
+        let points = 0;
+        
+        if (q.type === 'identification') {
+            isCorrect = q.acceptable.some(a => userAns.toLowerCase().includes(a.toLowerCase()));
+            points = isCorrect ? 1 : 0;
+        } else {
+            const userItems = userAns.split(',').map(s => s.trim().toLowerCase()).filter(s => s);
+            let correctItems = 0;
+            userItems.forEach(item => {
+                if (q.acceptable.some(a => item.includes(a.toLowerCase()))) correctItems++;
+            });
+            points = Math.min(correctItems, q.points || 1);
+            isCorrect = points > 0;
+        }
+        
+        score += points;
+        results.push({
+            question: q,
+            userAnswer: userAns,
+            isCorrect,
+            points,
+            maxPoints: q.type === 'enumeration' ? (q.points || 1) : 1
+        });
+    });
+    
+    const percentage = Math.round((score / 100) * 100);
+    const passed = percentage >= 80;
+    
+    const resultData = {
+        name: student.name,
+        section: student.section,
+        score: score,
+        percentage: percentage,
+        time: timeStr,
+        passed: passed,
+        date: new Date().toLocaleDateString('tl-PH'),
+        timestamp: firebase.database.ServerValue.TIMESTAMP
+    };
+    
+    saveResult(resultData);
+    showResults(score, percentage, timeStr, passed, results);
+}
+
+function showResults(score, pct, time, passed, results) {
+    document.getElementById('testSection').classList.add('hidden');
+    document.getElementById('timer').classList.add('hidden');
+    document.getElementById('resultsSection').classList.remove('hidden');
+    
+    document.getElementById('scoreDisplay').textContent = `${score}/100`;
+    document.getElementById('percentDisplay').textContent = `${pct}%`;
+    document.getElementById('timeDisplay').textContent = time;
+    
+    const badge = document.getElementById('passBadge');
+    if (passed) {
+        badge.className = 'pass-badge badge-pass';
+        badge.innerHTML = '🎉 PASADO! 🎉<br><small>80% threshold reached</small>';
+    } else {
+        badge.className = 'pass-badge badge-fail';
+        badge.innerHTML = '❌ HINDI PASADO ❌<br><small>Kailangan ng 80% (80/100)</small>';
+    }
+    
+    resultsRef.orderByChild('score').once('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+            const allScores = Object.values(data).map(r => r.score).sort((a, b) => b - a);
+            const rank = allScores.filter(s => s > score).length + 1;
+            document.getElementById('rankDisplay').textContent = `#${rank}`;
+        } else {
+            document.getElementById('rankDisplay').textContent = '#1';
+        }
+    });
+    
+    window.testResults = results;
+}
+
+function showReview() {
+    const container = document.getElementById('reviewContainer');
+    container.classList.remove('hidden');
+    
+    let html = '<h3 style="color: var(--accent); margin-bottom: 20px; text-align: center;">📋 Rebyu ng mga Sagot</h3>';
+    
+    const wrongAnswers = window.testResults.filter(r => !r.isCorrect);
+    
+    if (wrongAnswers.length === 0) {
+        html += '<div style="text-align: center; padding: 30px; color: var(--success);">🎉 Perfect! Walang mali!</div>';
+    } else {
+        html += `<p style="text-align: center; margin-bottom: 20px; color: var(--text-muted);">
+            May ${wrongAnswers.length} maling sagot. Basahin ang paliwanag:
+        </p>`;
+        
+        wrongAnswers.forEach((r, idx) => {
+            html += `
+                <div class="review-item review-wrong">
+                    <div class="review-question">${idx + 1}. [${r.question.type.toUpperCase()}] ${r.question.question}</div>
+                    <div class="review-answer review-wrong-ans">❌ Sagot mo: ${r.userAnswer || '(blank)'}</div>
+                    <div class="review-answer review-correct-ans">✓ Tamang sagot: ${r.question.answer}</div>
+                    <div class="explanation">
+                        <strong>💡 Paliwanag:</strong> ${r.question.explanation}
+                    </div>
+                </div>
+            `;
+        });
+    }
+    
+    container.innerHTML = html;
+    container.scrollIntoView({ behavior: 'smooth' });
+}
+
+function retakeTest() {
+    if (confirm('Makakakuha ka ng bagong set ng tanong. Ituloy?')) {
+        // Hide results and review
+        document.getElementById('resultsSection').classList.add('hidden');
+        document.getElementById('reviewContainer').classList.add('hidden');
+        
+        // Reset variables
+        currentQuestions = [];
+        currentIndex = 0;
+        answers = {};
+        student = {};
+        startTime = null;
+        if (timerInterval) clearInterval(timerInterval);
+        
+        // Show login section
+        document.getElementById('loginSection').classList.remove('hidden');
+        document.getElementById('warningBox').style.display = 'block';
+        
+        // Clear inputs
+        document.getElementById('studentName').value = '';
+        document.getElementById('studentSection').value = '';
+    }
+}
+
+function backToHome() {
+    // Hide all sections first
+    document.getElementById('testSection').classList.add('hidden');
+    document.getElementById('resultsSection').classList.add('hidden');
+    document.getElementById('reviewContainer').classList.add('hidden');
+    document.getElementById('timer').classList.add('hidden');
+    
+    // Show login section
+    document.getElementById('loginSection').classList.remove('hidden');
+    document.getElementById('warningBox').style.display = 'block';
+    
+    // Reset all variables
+    currentQuestions = [];
+    currentIndex = 0;
+    answers = {};
+    student = {};
+    startTime = null;
+    if (timerInterval) clearInterval(timerInterval);
+    
+    // Clear inputs
+    document.getElementById('studentName').value = '';
+    document.getElementById('studentSection').value = '';
+    
+    // Reset progress bar
+    document.getElementById('progressBar').style.width = '0%';
+}
+
+// ==================== INIT ====================
+document.addEventListener('DOMContentLoaded', () => {
+    initFirebase();
+    
+    const monitorUrl = window.location.href;
+    document.getElementById('monitorLink').textContent = monitorUrl;
+});
+
+// Keyboard nav
+document.addEventListener('keydown', (e) => {
+    if (document.getElementById('testSection').classList.contains('hidden')) return;
+    if (e.key === 'ArrowRight') nextQuestion();
+    if (e.key === 'ArrowLeft') prevQuestion();
+});
+</script>
+
+</body>
+</html>
